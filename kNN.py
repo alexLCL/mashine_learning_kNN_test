@@ -31,30 +31,67 @@ def classify0(inX, dataSet, labels, k):
 
 def file2matrix(filename):
     fr = open(filename)
-    numberOfLines = len(fr.readlines())
+    arrayOLines = fr.readlines()
+    numberOfLines = len(arrayOLines)
     returnMat = zeros((numberOfLines,3))
-    classLabelVector=[]
-    enumLabelVector=[]
-    fr = open(filename)
-    index =0
-    for line in fr.readlines():
-        line = line.strip()
-        listFromLine = line.split('\t')
-        returnMat[index,:] = listFromLine[0:3]
-        classLabelVector.append(listFromLine[3])
-        #产生一个类别向量，但是记录的是整型而非string
-        if cmp(listFromLine[3],'didntLike')==0:
-           enumLabelVector.append(1)
-        elif  cmp(listFromLine[3],'smallDoses')==0:
-            enumLabelVector.append(2)
-        elif cmp(listFromLine[3],'largeDoses')==0:
-            enumLabelVector.append(3)
-        index+=1
-    fr.close()
-    return returnMat,classLabelVector,enumLabelVector
+    classLabelVector = []
+    index = 0
+    for line in arrayOLines:
+	line = line.strip()
+	listFromLine = line.split('\t')
+	returnMat[index,:] = listFromLine[0:3]
+	classLabelVector.append(listFromLine[-1]) #修改：去掉int()
+	index += 1
+    return returnMat,classLabelVector
 
-mat,vector1,vector2 = file2matrix('datingTestSet.txt')
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.scatter(mat[:,1],mat[:,2],15.0*array(vector2),15.0*array(vector2))
-plt.show()
+
+
+
+def autoNorm(dataSet):
+    minVals = dataSet.min(0) #参数0表示从列中选取最小值，并非当前行的最小值
+    maxVals = dataSet.max(0)
+    ranges = maxVals - minVals
+    normDataSet = zeros(shape(dataSet))  #生成矩阵
+    m = dataSet.shape[0]
+    normDataSet = dataSet - tile(minVals, (m,1))
+    normDataSet = normDataSet/tile(ranges, (m,1))
+    return normDataSet, ranges, minVals
+
+
+# >>> import sys
+# >>> sys.path.append("D:\python")
+# >>> import kNN
+# >>> from numpy import *
+# >>> import matplotlib
+# >>> import matplotlib.pyplot as plt
+# >>> fig = plt.figure()
+# >>> ax = fig.add_subplot(111)
+# >>> mat,lab = kNN.file2matrix('D:\python\datingTestSet2.txt')
+# >>> ax.scatter(mat[:,1], mat[:,2], 15.0*array(map(int,lab)),15.0*array(map(int,lab))) #重点修改本行
+# >>> plt.show()
+
+
+def datingClassTest():
+    hoRatio = 0.10
+    datingDataMat,datingLabels = file2matrix('datingTestSet.txt')
+    normMat , ranges, minVals = autoNorm(datingDataMat)
+    m = normMat.shape[0]
+    numTestVecs = int(m * hoRatio)
+    errorCount = 0.0
+    for i in range(numTestVecs):
+        classifierResult = classify0(normMat[i,:],normMat[numTestVecs:m,:],datingLabels[numTestVecs:m],3)
+        print "the classifier came back with : %s , the real naswer is: %s"%(classifierResult, datingLabels[i])
+        if (classifierResult != datingLabels[i]) : errorCount += 1.0
+    print "the total error rate is : %f" %(errorCount/float(numTestVecs))
+
+
+def classifyPerson():
+    resultList = ['not at all', 'in small doses', 'in large doses']
+    percentTats = float(raw_input("percentage of time spent palying video games?"))
+    ffMiles = float(raw_input("ferquent flier miles earned per year ?"))
+    iceCream = float(raw_input("liters of ice cream consumed per year?"))
+    datingDataMat , datingLabels = file2matrix('datingTestSet2.txt')
+    normMat,ranges,minVals = autoNorm(datingDataMat)
+    inArr = array([ffMiles,percentTats,iceCream])
+    classifierResult = classify0((inArr-minVals)/ranges,normMat,datingLabels,3)
+    print "you will probable like this person:",resultList[int(classifierResult) - 1] #str和int类型不能直接进行运运算，需要转换一下
