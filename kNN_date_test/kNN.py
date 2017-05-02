@@ -3,6 +3,7 @@ from numpy import *  #科学计算模块
 import operator            #运算符模块
 import matplotlib
 import matplotlib.pyplot as plt
+from os import listdir
 
 
 def createDataSet():
@@ -95,3 +96,39 @@ def classifyPerson():
     inArr = array([ffMiles,percentTats,iceCream])
     classifierResult = classify0((inArr-minVals)/ranges,normMat,datingLabels,3)
     print "you will probable like this person:",resultList[int(classifierResult) - 1] #str和int类型不能直接进行运运算，需要转换一下
+
+
+def img2vector(filename):
+    returnVect = zeros((1, 1024))
+    fr = open(filename)
+    for i in range(32):
+        lineStr = fr.readline()
+        for j in range(32):
+            returnVect[0, 32 * i + j] = int(lineStr[j])
+    return returnVect
+
+
+def handwritingClassTest():
+    hwLabels = []
+    trainingFileList = listdir('trainingDigits')           #获取目录下的内容
+    m = len(trainingFileList)
+    trainingMat = zeros((m,1024))        #创建一个m行1024列的矩阵
+    for i in range(m):
+        fileNameStr = trainingFileList[i]
+        fileStr = fileNameStr.split('.')[0]
+        classNumStr = int(fileStr.split('_')[0])
+        hwLabels.append(classNumStr)
+        trainingMat[i,:] = img2vector('trainingDigits/%s' % fileNameStr)
+    testFileList = listdir('testDigits')        #iterate through the test set
+    errorCount = 0.0
+    mTest = len(testFileList)
+    for i in range(mTest):
+        fileNameStr = testFileList[i]
+        fileStr = fileNameStr.split('.')[0]     #take off .txt
+        classNumStr = int(fileStr.split('_')[0])
+        vectorUnderTest = img2vector('testDigits/%s' % fileNameStr)
+        classifierResult = classify0(vectorUnderTest, trainingMat, hwLabels, 3)
+        print "the classifier came back with: %d, the real answer is: %d" % (classifierResult, classNumStr)
+        if (classifierResult != classNumStr): errorCount += 1.0
+    print "\nthe total number of errors is: %d" % errorCount
+    print "\nthe total error rate is: %f" % (errorCount/float(mTest))
